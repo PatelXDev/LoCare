@@ -28,10 +28,10 @@ In unfamiliar cities and semi-urban areas, travelers and locals face critical de
 
 | Layer | Technology | Purpose |
 | :--- | :--- | :--- |
-| **Frontend** | HTML5, CSS3, JavaScript (Vanilla) | Zero-dependency, lightweight client-side UI for fast loading[cite: 1]. |
-| **Mapping Engine** | LeafletJS & OpenStreetMap (OSM) | Renders custom pins, proximity circles, and interactive map popups[cite: 1]. |
-| **Backend API** | Node.js, Express.js | Handles RESTful API requests, symptom-to-specialty mapping, and routing logic[cite: 1]. |
-| **Database** | PostgreSQL & PostGIS | Manages spatial proximity queries, doctor directories, and landmark coordinates[cite: 1]. |
+| **Frontend** | HTML5, CSS3, JavaScript (Vanilla) | Zero-dependency, lightweight client-side UI for fast loading. |
+| **Mapping Engine** | LeafletJS & OpenStreetMap (OSM) | Renders custom pins, proximity circles, and interactive map popups. |
+| **Backend API** | Node.js, Express.js | Handles RESTful API requests, symptom-to-specialty mapping, and routing logic. |
+| **Database** | PostgreSQL & PostGIS | Manages spatial proximity queries, doctor directories, and landmark coordinates. |
 
 ---
 
