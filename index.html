@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LoCare | Medical Discovery & Routing Engine</title>
+
+  <!-- LeafletJS & Routing Machine CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="brand-logo">+</div>
+      <div class="brand-title">
+        <h1>LoCare India</h1>
+        <span>Find the Right Healthcare, Right Now</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button type="button" id="themeBtn" class="theme-toggle" title="Toggle dark mode" aria-label="Toggle dark mode">🌙</button>
+      <button type="button" id="gpsBtn" class="btn-action" onclick="useMyGPS()">📍 Locate Me</button>
+    </div>
+  </header>
+
+  <main>
+    <aside class="sidebar">
+
+      <!-- Sticky top: step navigation + emergency helpline (always visible) -->
+      <div class="sidebar-top">
+        <nav class="stepper" aria-label="Search steps">
+          <button type="button" class="step-tab is-active" data-go="1">
+            <span class="step-dot">1</span><span class="step-label">Location</span>
+          </button>
+          <span class="step-line"></span>
+          <button type="button" class="step-tab" data-go="2">
+            <span class="step-dot">2</span><span class="step-label">Symptoms</span>
+          </button>
+          <span class="step-line"></span>
+          <button type="button" class="step-tab" data-go="3">
+            <span class="step-dot">3</span><span class="step-label">Results</span>
+            <span class="step-count" id="stepCount" hidden></span>
+          </button>
+        </nav>
+        <div id="helplineBanner" class="helpline-banner" style="display:none;"></div>
+      </div>
+
+      <!-- ============ STEP 1: LOCATION ============ -->
+      <section class="step-panel is-active" data-step="1">
+        <div class="step-head">
+          <h2>Where are you?</h2>
+          <p>Set your area so we can look for care close by.</p>
+        </div>
+
+        <div class="search-panel">
+          <div class="row-2">
+            <!-- City Autocomplete -->
+            <div class="field">
+              <label>City / Town</label>
+              <div class="input-wrapper">
+                <input type="text" id="cityInput"  placeholder="e.g., Kagal, Kolhapur" oninput="debounceSuggest(this.value, 'city')" autocomplete="off" />
+                <div id="citySuggestions" class="suggestions"></div>
+              </div>
+            </div>
+            <!-- Landmark Autocomplete -->
+            <div class="field">
+              <label>Landmark or Area</label>
+              <div class="input-wrapper">
+                <input type="text" id="landmarkInput"  placeholder="e.g., Central Bus Stand" oninput="debounceSuggest(this.value, 'landmark')" autocomplete="off" />
+                <div id="landmarkSuggestions" class="suggestions"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="action-buttons">
+            <button type="button" id="btnLocate" class="btn-primary btn-outline" onclick="locateAddressOnly()">📍 View Location on Map</button>
+          </div>
+        </div>
+
+        <div class="step-nav is-sticky">
+          <span></span>
+          <button type="button" class="btn-next" data-go="2">Next: Your symptoms →</button>
+        </div>
+      </section>
+
+      <!-- ============ STEP 2: SYMPTOMS ============ -->
+      <section class="step-panel" data-step="2">
+        <div class="step-head">
+          <h2>What are you feeling?</h2>
+          <p>Describe it in your own words, then answer a few quick questions.</p>
+        </div>
+
+        <div class="search-panel">
+          <div class="field">
+            <label>What symptoms are you experiencing?</label>
+            <div class="input-wrapper">
+              <input type="text" id="symptomInput"  placeholder="e.g., muscle twitching, severe headache..." oninput="suggestSymptom(this.value)" autocomplete="off" />
+              <div id="symptomSuggestions" class="suggestions"></div>
+            </div>
+          </div>
+
+          <div class="chips">
+            <button type="button" class="chip" onclick="quickSymptom('High fever and chills')">🤒 Fever / Cold</button>
+            <button type="button" class="chip" onclick="quickSymptom('Sharp pain in chest')">❤️ Chest Pain</button>
+            <button type="button" class="chip" onclick="quickSymptom('Injured bone')">🦴 Bone Injury</button>
+            <button type="button" class="chip" onclick="quickSymptom('Stomach hurts badly')">🤢 Stomach Ache</button>
+          </div>
+
+          <!-- Collapsible questionnaire (accordion) -->
+          <details class="triage-card" open>
+            <summary class="triage-head">
+              <div class="triage-title">
+                <span class="triage-icon">🤖</span>
+                <span>Smart Symptom Guide</span>
+              </div>
+              <div class="triage-meta">
+                <span class="triage-badge">AI</span>
+                <span class="triage-progress-text" id="triageCount">0 of 5</span>
+                <span class="triage-chevron" aria-hidden="true">▾</span>
+              </div>
+            </summary>
+
+            <div class="triage-body">
+              <div class="triage-sub"> Answer a few quick questions to help us connect you with the right specialist.</div>
+
+              <div class="triage-progress">
+                <div class="triage-progress-bar"><div class="triage-progress-fill" id="triageFill"></div></div>
+              </div>
+
+              <!-- Hidden selects keep triage.js working unchanged; the pills below fill them in -->
+              <select id="q1" class="triage-select">
+                <option value="">1. Duration of symptoms?</option>
+                <option value="A">Less than 2 weeks</option>
+                <option value="B">2 weeks to 3 months</option>
+                <option value="C">More than 3 months</option>
+              </select>
+              <select id="q2" class="triage-select">
+                <option value="">2. Prior Treatment?</option>
+                <option value="A">No, first time seeking help</option>
+                <option value="B">Yes, but treatments didn't work</option>
+                <option value="C">Yes, seeking a better opinion</option>
+              </select>
+              <select id="q3" class="triage-select">
+                <option value="">3. Symptom Focus?</option>
+                <option value="A">Affecting multiple areas</option>
+                <option value="B">Highly localized to one specific area/organ</option>
+              </select>
+              <select id="q4" class="triage-select">
+                <option value="">4. Impact & Severity?</option>
+                <option value="A">Mild/Moderate (can manage daily tasks)</option>
+                <option value="B">Severe (disrupting sleep/work/daily life)</option>
+              </select>
+              <select id="q5" class="triage-select">
+                <option value="">5. Medical History?</option>
+                <option value="A">No, generally healthy</option>
+                <option value="B">Unsure (haven't had recent checkups)</option>
+                <option value="C">Yes, I have a chronic condition</option>
+              </select>
+
+              <div class="q-block" data-for="q1">
+                <div class="q-title"><span class="q-num">1</span>How long have you had these symptoms?</div>
+                <div class="pills">
+                  <button type="button" class="pill" data-value="A">⏱️ Less than 2 weeks</button>
+                  <button type="button" class="pill" data-value="B">📅 2 weeks to 3 months</button>
+                  <button type="button" class="pill" data-value="C">🗓️ Over 3 months</button>
+                </div>
+              </div>
+
+              <div class="q-block" data-for="q2">
+                <div class="q-title"><span class="q-num">2</span>Have you had any treatment before?</div>
+                <div class="pills">
+                  <button type="button" class="pill" data-value="A">🆕 No, first time</button>
+                  <button type="button" class="pill" data-value="B">💊 Yes, but no improvement</button>
+                  <button type="button" class="pill" data-value="C">🔍 Want second opinion</button>
+                </div>
+              </div>
+
+              <div class="q-block" data-for="q3">
+                <div class="q-title"><span class="q-num">3</span>Where do you feel it?</div>
+                <div class="pills">
+                  <button type="button" class="pill" data-value="A">🌐 Multiple areas</button>
+                  <button type="button" class="pill" data-value="B">🎯 One specific area</button>
+                </div>
+              </div>
+
+              <div class="q-block" data-for="q4">
+                <div class="q-title"><span class="q-num">4</span>How severe is it?</div>
+                <div class="pills">
+                  <button type="button" class="pill" data-value="A">🙂  Mild to Moderate (Manageable)</button>
+                  <button type="button" class="pill" data-value="B">😣  Severe (Disrupts daily activities)</button>
+                </div>
+              </div>
+
+              <div class="q-block" data-for="q5">
+                <div class="q-title"><span class="q-num">5</span>Any medical history?</div>
+                <div class="pills">
+                  <button type="button" class="pill" data-value="A">💚 Generally healthy</button>
+                  <button type="button" class="pill" data-value="B">🤔 Not sure</button>
+                  <button type="button" class="pill" data-value="C">🩺 Chronic condition</button>
+                </div>
+              </div>
+
+              <button type="button" id="aiBtn" class="btn-ai" onclick="runAITriage()">🧠 Analyze Symptoms & Find Care</button>
+            </div>
+          </details>
+        </div>
+
+        <!-- AI result (filled by triage.js) -->
+        <div id="mapperBanner" class="mapper-banner"></div>
+      
+        <div class="step-nav is-sticky">
+          <button type="button" class="btn-back" data-go="1">← Back</button>
+          <button type="button" class="btn-next" data-go="3">Next: Find care →</button>
+        </div>
+      </section>
+
+      <!-- ============ STEP 3: RESULTS ============ -->
+      <section class="step-panel" data-step="3">
+        <div class="step-head">
+          <h2>Care near you</h2>
+          <p id="focusLine" class="focus-line" hidden></p>
+        </div>
+
+        <p id="ctaStatus" class="cta-status" role="status" hidden></p>
+
+        <div class="search-panel">
+          <div class="action-buttons">
+            <button type="button" id="btnScan" class="btn-primary btn-success" onclick="findFacilitiesOnly()" disabled>🔍 2. Find Nearby Medical Facilities</button>
+            <button type="button" class="btn-back btn-block" data-go="2">← Back to symptoms</button>
+          </div>
+        </div>
+
+        <div class="results-row">
+          <span id="resultsCount">Awaiting Scan...</span>
+        </div>
+
+        <!-- SINGLE FACILITY LIST -->
+        <div id="clinicList" class="clinic-list"></div>
+
+      </section>
+
+    </aside>
+
+    <div class="map-wrapper">
+      <div id="map"></div>
+    </div>
+  </main>
+
+  <!-- LeafletJS & Routing Machine Scripts -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+
+  <!-- Your original app logic (unchanged) -->
+  <script src="js/config.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/autocomplete.js"></script>
+  <script src="js/triage.js"></script>
+  <script src="js/facilities.js"></script>
+  <script src="js/app.js"></script>
+
+  <!-- UI-only scripts (design helpers, no app logic) -->
+  <script src="js/triage-ui.js"></script>
+  <script src="js/sidebar-ui.js"></script>
+  <script src="js/sync-ui.js"></script>
+  <script src="js/cta-ui.js"></script>
+  <script src="js/theme.js"></script>
+</body>
+</html>
