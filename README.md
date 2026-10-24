@@ -30,7 +30,7 @@ In unfamiliar cities and semi-urban areas, travelers and locals face critical de
 | :--- | :--- | :--- |
 | **Frontend** | HTML5, CSS3, JavaScript (Vanilla) | Zero-dependency, lightweight client-side UI for fast loading. |
 | **Mapping Engine** | LeafletJS & OpenStreetMap (OSM) | Renders custom pins, proximity circles, and interactive map popups. |
-| **External API** , symptom-to-specialty mapping, and routing logic. |
+| **External API** |Photon Api ,Overpass Api , OSRMA  |  symptom-to-specialty mapping, and routing logic. |
 
 
 ---
